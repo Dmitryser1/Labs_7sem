@@ -98,8 +98,26 @@ def drawgraphYav():
     ix = 6
     y_o = funct(ls, t_old, ix, As, Ds, Gs, Cs)
     plot2.plot(t_old, y_o, label="Аналитическое: x=" + str(ix))
+    I=5
+    K=150
+    t = np.linspace(0, ts, K + 1)
+    i = int((2 * ix * I) / ls)
+    yx = soluteYav(Ds, As, ts, ls, I, K, Cs)[i]
+    plot2.plot(t, yx, label="Явная: I=" + str(I)+", K="+str(K))
     I=10
-    K=2000
+    K=300
+    t = np.linspace(0, ts, K + 1)
+    i = int((2 * ix * I) / ls)
+    yx = soluteYav(Ds, As, ts, ls, I, K, Cs)[i]
+    plot2.plot(t, yx, label="Явная: I=" + str(I)+", K="+str(K))
+    I=20
+    K=600
+    t = np.linspace(0, ts, K + 1)
+    i = int((2 * ix * I) / ls)
+    yx = soluteYav(Ds, As, ts, ls, I, K, Cs)[i]
+    plot2.plot(t, yx, label="Явная: I=" + str(I)+", K="+str(K))
+    I=40
+    K=1200
     t = np.linspace(0, ts, K + 1)
     i = int((2 * ix * I) / ls)
     yx = soluteYav(Ds, As, ts, ls, I, K, Cs)[i]

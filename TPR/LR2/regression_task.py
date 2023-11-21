@@ -4,9 +4,6 @@ import numpy as np
 import random
 
 
-# class DataGenerator(namedtuple("DataGenerator", "dimension, args_min, args_max, args_step, generator_func")):
-#    def __new__(cls, **args):
-
 class Regression:
     def __new__(cls, *args, **kwargs):
         raise RuntimeError("Regression class is static class")
@@ -33,7 +30,7 @@ class Regression:
         """
         x_step = arg_range / (n_points - 1)
         return np.array([i * x_step for i in range(n_points)]),\
-               np.array([i * x_step * k + b + Regression.rand_in_range(rand_range) for i in range(n_points)])
+               np.array([(i * x_step * k) + b + Regression.rand_in_range(rand_range) for i in range(n_points)])
 
     @staticmethod
     def second_order_surface_2d(surf_params:
@@ -153,23 +150,18 @@ class Regression:
         Σxi*yi - Σxi*Σyi / n = -k * ((Σxi)^2 / n - Σxi^2)\n
         (Σxi*yi - Σxi*Σyi / n) / (Σxi^2 - (Σxi)^2 / n) = k\n
         окончательно:\n
+
         k = (Σxi*yi - Σxi*Σyi / n) / (Σxi^2 - (Σxi)^2 / n)\n
         b = (Σyi - k * Σxi) /n\n
         :param x: массив значений по x
         :param y: массив значений по y
         :returns: возвращает пару (k, b), которая является решением задачи (Σ(yi -(k * xi + b))^2)->min
         """
-        n = len(x)
-        multxy = 0
-        powx = 0
-        for i in range(n):
-            multxy += x[i] * y[i]
-            powx += x[i] ** 2
 
-        k = (multxy - (np.sum(x) * np.sum(y)) / n) / (powx - (np.sum(x) ** 2) / n)
-        b = (np.sum(y) - k* np.sum(x)) / n
-
-        return (k, b)
+        n = x.size  # Используем длину массива x, как размерность данных
+        k = ((x * y).sum() - (x.sum() * y.sum()) / n) / (np.power(x, 2).sum() - np.power(x.sum(), 2) / n)
+        b = (y.sum() - k * x.sum()) / n
+        return k, b
 
     @staticmethod
     def bi_linear_regression(x: np.ndarray, y: np.ndarray, z: np.ndarray) -> Tuple[float, float, float]:
@@ -227,8 +219,25 @@ class Regression:
         :param z: массив значений по z
         :returns: возвращает тройку (kx, ky, b), которая является решением задачи (Σ(zi - (yi * ky + xi * kx + b))^2)->min
         """
-        #tut
-        return 1, 1, 0
+        n = len(x)
+        sum_x = np.sum(x)
+        sum_y = np.sum(y)
+        sum_z = np.sum(z)
+        sum_xy = np.sum(x * y)
+        sum_x_squared = np.sum(x ** 2)
+        sum_y_squared = np.sum(y ** 2)
+        sum_xz = np.sum(x * z)
+        sum_yz = np.sum(y * z)
+
+        hesse_matrix = np.array([[sum_x_squared, sum_xy, sum_x],
+                                 [sum_xy, sum_y_squared, sum_y],
+                                 [sum_x, sum_y, n]])
+
+        grad = np.array([-sum_xz + sum_xy + sum_x_squared,
+                         -sum_yz + sum_y_squared + sum_xy,
+                         -sum_z + sum_y + sum_x])
+        kx, ky, b = np.array((1, 1, 0)) - np.linalg.inv(hesse_matrix) @ grad
+        return kx, ky, b
 
     @staticmethod
     def n_linear_regression(data_rows: np.ndarray) -> np.ndarray:
@@ -239,7 +248,7 @@ class Regression:
 
                | Σkx * xi^2    + Σky * xi * yi + b * Σxi - Σzi * xi|\n
         grad = | Σkx * xi * yi + Σky * yi^2    + b * Σyi - Σzi * yi|\n
-               | Σyi * ky      + Σxi * kx                - Σzi     |\n`
+               | Σyi * ky      + Σxi * kx                - Σzi     |\n
 
         x_0 = [1,...1, 0] =>
 
@@ -250,7 +259,24 @@ class Regression:
         :param data_rows:  состоит из строк вида: [x_0,x_1,...,x_n, f(x_0,x_1,...,x_n)]
         :return:
         """
-        return np.array((0.0,))
+        n_points, n_args = data_rows.shape
+
+        x_0 = np.ones(shape=(n_args, 1))
+        x_0[-1] = 0
+
+        H = np.zeros(shape=(n_args, n_args))
+
+        for row in range(n_args - 1):
+            H[-1, row] = H[row, -1] = data_rows[:, row].sum()
+            for col in range(row + 1):
+                H[row, col] = H[col, row] = np.dot(data_rows[:, row], data_rows[:, col])
+        H[-1, -1] = n_points
+
+        grad = np.zeros(shape=(n_args, 1))
+        for row in range(n_args - 1):
+            grad[row] = H[row, :-1].sum() - np.dot(data_rows[:, -1], data_rows[:, row])
+        grad[-1] = H[-1, :-1].sum() - data_rows[:, -1].sum()
+        return x_0 - np.linalg.inv(H) @ grad
 
     @staticmethod
     def poly_regression(x: np.ndarray, y: np.ndarray, order: int = 5) -> np.ndarray:
@@ -265,20 +291,65 @@ class Regression:
         :param order: порядок полинома
         :return: набор коэффициентов bi полинома y = Σx^i*bi
         """
-        return np.array((0.0,))
+        X = np.ones((x.size, order))
+        for i in range(x.size):
+            for j in range(1, order):
+                X[i][j] = x[i] * X[i][j-1]
+        coefficients = np.linalg.inv(X.T @ X) @ X.T @ y
+        return coefficients
+
 
     @staticmethod
     def polynom(x: np.ndarray, b: np.ndarray) -> np.ndarray:
-        """
-        :param x: массив значений по x\n
-        :param b: массив коэффициентов полинома\n
-        :returns: возвращает полином yi = Σxi^j*bj\n
-        """
-        return np.array((0.0,))
+        n = len(b)
+        result = b[0] * np.ones(len(x))
+        copy_x = x.copy()
+        for i in range(1, n):
+            result += b[i] * copy_x
+            copy_x *= x
+        return result
+
 
     @staticmethod
     def quadratic_regression_2d(x: np.ndarray, y: np.ndarray, z: np.ndarray) -> np.ndarray:
-        return np.array((0.0,))
+        """
+        Генерирует набор коэффициентов поверхности второго порядка. Уравнение поверхности:
+        z(x,y) = a * x^2 + x * y * b + c * y^2 + d * x + e * y + f
+        Поверхность максимальна близка ко всем точкам их набора.
+        Получить коэффициенты можно по формуле:
+        C = A^-1 * B
+        C = {a, b, c, d, e, f}^T (вектор столбец искомых коэффициентов)
+        Далее введём обозначения:
+        x_i - i-ый элемент массива x
+        y_i - i-ый элемент массива y
+        z_i - i-ый элемент массива z
+        C = {a, b, c, d, e, f}^T (вектор столбец искомых коэффициентов)
+        B = {Σ xi^2 * zi,
+             Σ xi * yi * zi,
+             Σ yi^2 * zi,
+             Σ xi * zi,
+             Σ yi * zi,
+             Σ zi} - (вектор свободных членов)
+        Чтобы построить матрицу A введём новую матрицу D, составленную из условий:
+        D = { x^2 | x * y | y^2 | x | y | 1 }.
+        Строка этой матрицы имеет вид:
+        di = { xi^2, xi * yi, yi^2, xi, yi, 1 }.
+
+        Матричный элемент матрицы A выражается из матрицы D следующим образом:
+        a_ij = (D[:,i], D[:,j]), где (*, *) - скалярное произведение.
+        Матрица A - симметричная и имеет размерность 6x6.
+        :param x:
+        :param y:
+        :param z:
+        :return:
+        """
+
+        D = np.vstack([x ** 2, x * y, y ** 2, x, y, np.ones_like(x)]).T
+        B = np.array([np.sum(x ** 2 * z), np.sum(x * y * z), np.sum(y ** 2 * z),
+                      np.sum(x * z), np.sum(y * z), np.sum(z)])
+        A = np.dot(D.T, D)
+        coefficients = np.linalg.solve(A, B)
+        return coefficients
 
     @staticmethod
     def distance_field_example():
@@ -294,8 +365,8 @@ class Regression:
         x, y = Regression.test_data_along_line()
         k_, b_ = Regression.linear_regression(x, y)
         print(f"y(x) = {k_:1.5} * x + {b_:1.5}\n")
-        k = np.linspace(k_ - 50.0, k_ + 50.0, 128, dtype=float)
-        b = np.linspace(b_ - 50.0, b_ + 50.0, 128, dtype=float)
+        k = np.linspace(-2.0, 2.0, 128, dtype=float)
+        b = np.linspace(-2.0, 2.0, 128, dtype=float)
         z = Regression.distance_field(x, y, k, b)
         plt.imshow(z, extent=[k.min(), k.max(), b.min(), b.max()])
         plt.plot(k_, b_, 'r*')
@@ -317,13 +388,16 @@ class Regression:
         print("linear reg test:")
         x, y = Regression.test_data_along_line()
         k, b = Regression.linear_regression(x, y)
-        plt.scatter(x,y, color="red" , s=10, marker="o")
-        plt.plot(x,k*x+b, color="blue")
-        plt.xlabel("k")
-        plt.ylabel("b")
+        plt.figure(figsize=(8, 6))
+        plt.scatter(x, y, label='Данные')  # Точки данных
+        plt.plot(x, k * x + b, color='red',
+                 label=f'Регрессионная прямая: y = {k:.2f}x + {b:.2f}')  # Регрессионная прямая
+        plt.xlabel('X')
+        plt.ylabel('Y')
+        plt.legend()
+        plt.title('Линейная регрессия')
         plt.grid(True)
         plt.show()
-
 
     @staticmethod
     def bi_linear_reg_example():
@@ -335,27 +409,20 @@ class Regression:
            регрессионную плоскость вида:\n z = kx*x + ky*y + b\n
         :return:
         """
-        from matplotlib import cm
+        X, Y, Z_true = Regression.test_data_2d()
+        kx_pred, ky_pred, b_pred = Regression.bi_linear_regression(X, Y, Z_true)
 
-        x, y, z = Regression.test_data_2d()
+        _, ax = plt.subplots(subplot_kw={"projection": "3d"})
 
-        kx, ky, b = Regression.bi_linear_regression(x, y, z)
+        ax.scatter(X, Y, Z_true, c="blue")
 
-        fig, ax = plt.subplots(subplot_kw={"projection": "3d"})
+        X, Y = np.meshgrid(X, Y)
+        Z_pred = kx_pred * X + ky_pred * Y + b_pred
 
-        surf = ax.plot_surface(x, y, kx*x + ky*y + b, cmap=cm.coolwarm, linewidth=0, antialiased=False)
-
-        ax.set_title("bi_linear regres")
-
-        ax.set_xlabel("x")
-
-        ax.set_ylabel("y")
-
-        ax.set_zlabel("z")
-
-        fig.colorbar(surf, shrink=0.5, aspect=5)
-
-        plt.show()
+        ax.plot_surface(X, Y, Z_pred, cmap='inferno')
+        ax.set_xlabel('x')
+        ax.set_ylabel('y')
+        ax.set_zlabel('z')
 
         plt.show()
 
@@ -370,24 +437,67 @@ class Regression:
         :return:
         """
         print('\npoly regression test:')
-        # x, y = Regression.test_data_along_line()
-        # coefficients = Regression.poly_regression(x, y)
-        # y_ = Regression.polynom(x, coefficients)
+        x, y = Regression.test_data_along_line()
+        coefficients = Regression.poly_regression(x, y)
+        y_ = Regression.polynom(x, coefficients)
+        plt.figure(figsize=(8, 6))
+        plt.scatter(x, y, label='Данные')  # Точки данных
+        plt.plot(x, y_, color='red', label='Регрессионная кривая')  # Регрессионная кривая
+        plt.xlabel('X')
+        plt.ylabel('Y')
+        plt.legend()
+        plt.title('Полиномиальная регрессия')
+        plt.grid(True)
+        plt.show()
 
     @staticmethod
     def n_linear_reg_example():
         print("\nn linear regression test:")
+        data = Regression.test_data_nd()
+        coefficients = Regression.n_linear_regression(data)
+        print(' + '.join(f'X_{i} * {v:.4f}' for i, v in enumerate(coefficients.flat)))
+        x_values = data[:, :-1]  # Ваши входные данные x (без последнего столбца)
+        y_actual = data[:, -1]  # Фактические значения y
+
+        y_predicted = np.dot(x_values, coefficients[:5])+coefficients[5:6]  # Предсказанные значения y
+
+        plt.figure(figsize=(8, 6))
+        # Различные цвета для фактических и предсказанных значений
+        plt.scatter(y_actual, y_predicted, c='blue', label='Фактические значения', marker='o')  # Фактические значения
+        plt.scatter(y_actual, y_predicted, c='red', label='Предсказанные значения',
+                    marker='x')  # Предсказанные значения
+        plt.xlabel('Фактические значения y')
+        plt.ylabel('Предсказанные значения y')
+        plt.legend()
+        plt.title('n-Линейная регрессия')
+        plt.grid(True)
+        plt.show()
+
 
     @staticmethod
     def quadratic_reg_example():
         """
         """
-        print('2d quadratic regression test:')
-        # x, y, z = Regression.second_order_surface_2d()
-        # coeffs = Regression.quadratic_regression_2d(x, y, z)
-        # y_ = polynom(x, coefficients)
-        # print(
-        #     f"z(x, y) = {coeffs[0]:1.3} * x^2 + {coeffs[1]:1.3} * x * y + {coeffs[2]:1.3} * y^2 + {coeffs[3]:1.3} * x + {coeffs[4]:1.3} * y + {coeffs[5]:1.3}")
+        X, Y, Z_true = Regression.second_order_surface_2d()
+        coeffs = Regression.quadratic_regression_2d(X, Y, Z_true)
+        _, ax = plt.subplots(subplot_kw={"projection": "3d"})
+
+        ax.scatter(X, Y, Z_true, c="blue")
+
+        X, Y = np.meshgrid(X, Y)
+        Z_pred = coeffs[0] * X**2 + coeffs[1] * X * Y + coeffs[2] * Y**2 + coeffs[3] * X + coeffs[4] * Y + coeffs[5]
+        ax.plot_surface(X, Y, Z_pred, cmap='inferno')
+        ax.set_xlabel('x')
+        ax.set_ylabel('y')
+        ax.set_zlabel('z')
+
+        plt.show()
+
+    #  print('2d quadratic regression test:')
+       # x, y, z = Regression.second_order_surface_2d()
+        #coeffs = Regression.quadratic_regression_2d(x, y, z)
+        #y_ = Regression.polynom(x, coeffs)
+        #print(f"z(x, y) = {coeffs[0]:1.3} * x^2 + {coeffs[1]:1.3} * x * y + {coeffs[2]:1.3} * y^2 + {coeffs[3]:1.3} * x + {coeffs[4]:1.3} * y + {coeffs[5]:1.3}")
 
 
 if __name__ == "__main__":

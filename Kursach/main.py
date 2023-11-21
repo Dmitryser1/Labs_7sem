@@ -7,11 +7,8 @@ import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 from scipy import optimize
 
-ls = 12 #l
-Ds = 0.007 #D
 As = 0.12 #alpha
 Cs = 0.8 #c
-ts = 80 #T
 Gs= 10# psi/gammafunc
 
 def funct(l, t, x, a, D, g, C): 
@@ -26,19 +23,18 @@ def funct(l, t, x, a, D, g, C):
 
 
 def soluteYav(D, alpha, tt, ll, ii, kk, C):
-    hx = ll / (ii * 2)
+    hx = ll / ii
     ht = tt / kk
     gamma = (alpha * ht) / (C * hx ** 2)
     u = np.zeros((ii + 1, kk + 1))
     for i in range(ii + 1):
         u[i][0] = 0
-    for k in range(1, kk + 1):
-        u[0][k] = Gs
     for k in range(kk):
         j = 1
         while j < ii:
             u[j][k + 1] = (1 - 2 * gamma) * u[j][k] + gamma * (u[j + 1][k] + u[j - 1][k])
             j += 1
+        u[0][k + 1] = Gs
         u[ii][k + 1] = u[ii - 1][k + 1]
     return u
 
@@ -51,51 +47,41 @@ def drawgraphYav():
     As = float(eA.get())
     Cs = float(eC.get())
     ts = float(eT.get())
-    I = int(eI.get())
-    K = int(eK.get())
     tt = [0, ts / 5, 2 * ts / 5, 3 * ts / 5, 4 * ts / 5, ts]
-    x_old = np.linspace(0, ls / 2, 100, endpoint=True)
+    x_old = np.linspace(0, ls, 100, endpoint=True)
     it = tt[2]
     y_old = funct(ls, it, x_old, As, Ds, Gs, Cs)
     plot1.plot(x_old, y_old, label="Аналитическое: t=" + str(it))
-    I = 5
-    K = 150
-    x = np.linspace(0, ls / 2, I + 1)
-    yt = soluteYav(Ds, As, it, ls, I, K, Cs)[:, K]
-    plot1.plot(x, yt, label="Явная: I=" + str(I)+", K="+str(K))
-    I = 10
-    K = 300
-    x = np.linspace(0, ls / 2, I + 1)
-    yt = soluteYav(Ds, As, it, ls, I, K, Cs)[:, K]
-    plot1.plot(x, yt, label="Явная: I=" + str(I)+", K="+str(K))
-    I = 20
-    K = 600
-    x = np.linspace(0, ls / 2, I + 1)
-    yt = soluteYav(Ds, As, it, ls, I, K, Cs)[:, K]
-    plot1.plot(x, yt, label="Явная: I=" + str(I)+", K="+str(K))
-    I = 40
-    K = 1200
-    x = np.linspace(0, ls / 2, I + 1)
-    yt = soluteYav(Ds, As, it, ls, I, K, Cs)[:, K]
-    plot1.plot(x, yt, label="Явная: I=" + str(I)+", K="+str(K))
+    I_values = [5, 10, 20, 40]
+    K_values = [150, 300, 600, 1200]
+    
+    for I, K in zip(I_values, K_values):
+        x = np.linspace(0, ls, I + 1)
+        yt = soluteYav(Ds, As, it, ls, I, K, Cs)[:, K]
+        plot1.plot(x, yt, label=f"Явная: I={I}, K={K}")
+    
     plot1.legend()
     plot1.set_xlabel('x')
     plot1.set_ylabel('$u(x)$')
     eps = 0
-    x = np.linspace(0, ls / 2, I + 1, endpoint=True)
+    x = np.linspace(0, ls, I + 1, endpoint=True)
     ht = ts / K
     y = soluteYav(Ds, As, ts, ls, I, K, Cs)
+    print(len(y))
     for k in range(K + 1):
         t = ht * k
         yp = funct(ls, t, x, As, Ds, Gs, Cs)
         for i in range(len(y)):
             if eps < abs(y[i][k] - yp[i]):
                 eps = abs(y[i][k] - yp[i])
+                print(eps)
     print(eps)
     plot1.set_title("Погрешность = " + str(eps))
+
+    ##################
     xx = [0, ls / 5, 3 * ls / 10, 3 * ls / 5, 5 * ls / 10, ls]
     t_old = np.linspace(0, ts, 200, endpoint=True)
-    ix = 6
+    ix = xx[4]
     y_o = funct(ls, t_old, ix, As, Ds, Gs, Cs)
     plot2.plot(t_old, y_o, label="Аналитическое: x=" + str(ix))
     I=5

@@ -44,55 +44,7 @@ def soluteYav(D, beta, tt, ll, ii, kk, H):
         u[0][k + 1] = u[1][k + 1] / (1 + hx * H)
         u[ii][k + 1] = u[ii - 1][k + 1]
     return u
-def soluteYav1(D, beta, tt, ll, ii, kk, H):
-    hx = ll / (ii * 2)
-    ht = (tt / kk) / 2
-    ksi = (D * ht) / (hx ** 2)
-    eta = beta * ht
-    u = np.zeros((ii + 1, kk + 1))
-    for i in range(ii + 1):
-        u[i][0] = psi(i, hx, ll)
-    for k in range(kk):
-        j = 1
-        while j < ii:
-            u[j][k + 1] = (1 - 2 * ksi + eta) * u[j][k] + ksi * (u[j + 1][k] + u[j - 1][k])
-            j += 1
-        u[0][k + 1] = u[1][k + 1] / (1 + hx * H)
-        u[ii][k + 1] = u[ii - 1][k + 1]
-    return u
 
-def soluteRunge(D, beta, tt, ll, ii, kk, H):
-    hx = ll / (ii * 2)
-    ht = tt / kk
-    ht2 = ht / 2
-    ksi = (D * ht) / (hx ** 2)
-    ksi2 = (D * ht2) / (hx ** 2)
-    eta = beta * ht
-    eta2 = beta * ht2
-    u = np.zeros((ii + 1, kk + 1))
-    u2 = np.zeros((ii + 1, 2 * kk + 1))
-    for i in range(ii + 1):
-        u[i][0] = psi(i, hx, ll)
-    for i in range(ii + 1):
-        u2[i][0] = psi(i, hx, ll)
-    for k in range(kk):
-        j = 1
-        while j < ii:
-            u[j][k + 1] = (1 - 2 * ksi + eta) * u[j][k] + ksi * (u[j + 1][k] + u[j - 1][k])
-            j += 1
-        u[0][k + 1] = u[1][k + 1] / (1 + hx * H)
-        u[ii][k + 1] = u[ii - 1][k + 1]
-    for k in range(2 * kk):
-        j = 1
-        while j < ii:
-            u2[j][k + 1] = (1 - 2 * ksi2 + eta2) * u2[j][k] + ksi2 * (u2[j + 1][k] + u2[j - 1][k])
-            j += 1
-        u2[0][k + 1] = u2[1][k + 1] / (1 + hx * H)
-        u2[ii][k + 1] = u2[ii - 1][k + 1]
-    for k in range(kk + 1):
-        for i in range(ii + 1):
-            u[i][k] = -u[i][k] + 2 * u2[i][2 * k]
-    return u
 def drawgraphYav():
     global plot1, plot2, fig, canvas, toolbar, ls, Hs
     plot1.clear()

@@ -1,0 +1,7 @@
+nvcc warning : The 'compute_20', 'sm_20', and 'sm_21' architectures are deprecated, and may be removed in a future release (Use -Wno-deprecated-gpu-targets to suppress warning).
+
+(GridDim, BlockDim) = (1024, 64)
+N = 400000
+
+CUDA with (GridDim, BlockDim) = (1024, 64). N = 400000
+CUDA TIME OF WORK IS: 0.000107728

@@ -24,10 +24,12 @@ def funct(l, t, x, a, D, g, C):
     summ = 0
     for n in range(200): 
         lam = (np.pi * (1 + 2 * n) / l) ** 2
-        summ += (
-            -(4 * D * g * (-1) ** n) / (np.pi * (1 + 2 * n) * (a * lam + D)) - 
-        (((-1) ** n * g * 4 * ( a * lam )) / (np.pi * (1 + 2 * n) * (a * lam + D))) * np.exp(-t * (a * lam + D) / C) 
-        ) * np.cos((np.pi * x * (1 + 2 * n)) / l - (np.pi * (1 + 2 * n)) / 2)
+        summ+=((-(4 * D * g * (-1) ** n) / (np.pi * (1 + 2 * n) * (a * lam + D))) *
+        (D + a* lam * np.exp(-t * (a * lam + D) / C)) 
+        ) * np.cos((np.pi * x * (1 + 2 * n)) / l - (np.pi * (1 + 2 * n)) / 2) 
+        # summ+=(-(4 * D * g * (-1) ** n) / (np.pi * (1 + 2 * n) * (a * lam + D)) - 
+        # (((-1) ** n * g * 4 * ( a * lam )) / (np.pi * (1 + 2 * n) * (a * lam + D))) * np.exp(-t * (a * lam + D) / C) 
+        # ) * np.cos((np.pi * x * (1 + 2 * n)) / l - (np.pi * (1 + 2 * n)) / 2)
     return summ + g
 
 def g1():

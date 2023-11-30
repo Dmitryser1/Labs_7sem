@@ -10,34 +10,54 @@ from scipy import optimize
 As = 0.12 #alpha
 Cs = 0.8 #c
 Gs= 10# psi/gammafunc
+def funct2(D, alpha, tt, ll, ii, kk, C):
+    hx = ll / (1.95 * ii)
+    ht = tt / (kk)
+    caf= D*ht/C
+    gamma = (alpha * ht) / (C * hx ** 2)
+    u = np.zeros((ii + 1, kk + 1))
+    for i in range(ii + 1):
+        u[i][0] = 0
+    for k in range(kk):
+        j = 1
+        while j < ii:
+            u[j][k + 1] = (1 - 2 * gamma) * u[j][k] + gamma * (u[j + 1][k] + u[j - 1][k])
+            j += 1
+        u[0][k + 1] = Gs
+        u[ii][k + 1] = u[ii - 1][k + 1]
+    # for k in range(kk):
+    #     u[0][k + 1] = Gs
+    #     u[ii][k + 1] = u[ii - 1][k + 1]
+    return u
 
 def funct(l, t, x, a, D, g, C): 
     summ = 0
     for n in range(200): 
         lam = (np.pi * (1 + 2 * n) / l) ** 2
-        # summ+=((-(4 * D * g * (-1) ** n) / (np.pi * (1 + 2 * n) * (a * lam + D))) *
-        # (D + a* lam * np.exp(-t * (a * lam + D) / C)) 
-        # ) * np.cos((np.pi * x * (1 + 2 * n)) / l - (np.pi * (1 + 2 * n)) / 2)
-        summ+=(-(4 * D * g * (-1) ** n) / (np.pi * (1 + 2 * n) * (a * lam + D)) - 
+        summ += (
+            -(4 * D * g * (-1) ** n) / (np.pi * (1 + 2 * n) * (a * lam + D)) - 
         (((-1) ** n * g * 4 * ( a * lam )) / (np.pi * (1 + 2 * n) * (a * lam + D))) * np.exp(-t * (a * lam + D) / C) 
         ) * np.cos((np.pi * x * (1 + 2 * n)) / l - (np.pi * (1 + 2 * n)) / 2)
     return summ + g
 
-
 def soluteYav(D, alpha, tt, ll, ii, kk, C):
-    hx = ll / ii
-    ht = tt / kk
+    hx = ll / (2 * ii)
+    ht = tt / (kk)
+    caf= D*ht/C
     gamma = (alpha * ht) / (C * hx ** 2)
     u = np.zeros((ii + 1, kk + 1))
-    for i in range(ii):
+    for i in range(ii + 1):
         u[i][0] = 0
     for k in range(kk):
         j = 1
         while j < ii:
-            u[j][k + 1] = (1 - 2 * gamma) * u[j][k] + gamma * (u[j + 1][k] + u[j - 1][k]) #- D * ht * u[j][k] / C
+            u[j][k + 1] = (1 - 2 * gamma) * u[j][k] + gamma * (u[j + 1][k] + u[j - 1][k])
             j += 1
         u[0][k + 1] = Gs
         u[ii][k + 1] = u[ii - 1][k + 1]
+    # for k in range(kk):
+    #     u[0][k + 1] = Gs
+    #     u[ii][k + 1] = u[ii - 1][k + 1]
     return u
 
 def drawgraphYav():
@@ -52,65 +72,74 @@ def drawgraphYav():
     I = int(eI.get())
     K = int(eK.get())
     tt = [0, ts / 5, 2 * ts / 5, 3 * ts / 5, 4 * ts / 5, ts]
-    x_old = np.linspace(0, ls/2, 200, endpoint=True)
-    x = np.linspace(0, ls/2, I + 1)
+    x_old = np.linspace(0, ls, 200, endpoint=True)
+    x = np.linspace(0, ls, 2*I + 2)
     for it in tt:
-        y_old = funct(ls, it, x_old, As, Ds, Gs, Cs)
-        plot1.plot(x_old, y_old, label="Аt=" + str(it))
+        yt = funct2(Ds, As, it, ls, I, K, Cs)[:, K]
+        yy = np.flip(yt)
+        yt = np.concatenate((yt, yy), axis=0)
+        plot1.plot(x, yt, label="At=" + str(it))
+        # y_old = funct(ls, it, x_old, As, Ds, Gs, Cs)
+        # plot1.plot(x_old, y_old, label="At=" + str(it))
         yt = soluteYav(Ds, As, it, ls, I, K, Cs)[:, K]
+        yy = np.flip(yt)
+        yt = np.concatenate((yt, yy), axis=0)
         plot1.plot(x, yt, label="t=" + str(it))
         plot1.legend()
 
-
-    # it = tt[2]
+    # it = tt[1]
     # y_old = funct(ls, it, x_old, As, Ds, Gs, Cs)
     # plot1.plot(x_old, y_old, label="Аналитическое: t=" + str(it))
-    # I_values = [5, 10, 20, 40]
-    # K_values = [150, 300, 600, 1200]
+    # I_values = [5,15,30,60]
+    # K_values = [150,450,900,1800]
     
     # for I, K in zip(I_values, K_values):
-    #     x = np.linspace(0, ls, I + 1)
+    #     x = np.linspace(0, ls, 2*I + 2)
     #     yt = soluteYav(Ds, As, it, ls, I, K, Cs)[:, K]
+    #     yy = np.flip(yt)
+    #     yt = np.concatenate((yt, yy), axis=0)
     #     plot1.plot(x, yt, label=f"Явная: I={I}, K={K}")
     
     plot1.legend()
     plot1.set_xlabel('x')
     plot1.set_ylabel('$u(x)$')
-    # eps = 0
-    # x = np.linspace(0, ls, I + 1, endpoint=True)
-    # ht = ts / K
-    # y = soluteYav(Ds, As, ts, ls, I, K, Cs)   
-    # print(len(y))
-    # for k in range(K + 1):
-    #     t = ht * k
-    #     yp = funct(ls, t, x, As, Ds, Gs, Cs)
-    #     for i in range(len(y)):
-    #         if eps < abs(y[i][k] - yp[i]):
-    #             eps = abs(y[i][k] - yp[i])
-    #             print(eps)
-    # print(eps)
-    # plot1.set_title("Погрешность = " + str(eps))
+    eps = 0
+    x = np.linspace(0, ls/2, I + 1, endpoint=True)
+    ht = ts / K
+    yt = soluteYav(Ds, As, ts, ls, I, K, Cs)
+    yp = funct2(Ds, As, ts, ls, I, K, Cs)
+    print(len(yt))
+    for k in range(K + 1):
+        t = ht * k
+        #yp = funct(ls, t, x, As, Ds, Gs, Cs)
+        for i in range(len(yt)):
+            if eps < abs(yt[i][k] - yp[i][k]):
+                eps = abs(abs(yt[i][k] - yp[i][k]))
+    print(eps)
+    plot1.set_title("Погрешность = " + str(eps))
 
     ##################
-    xx = [0, ls / 5, 3 * ls / 10, 3 * ls / 5, 5 * ls / 10, ls]
     t_old = np.linspace(0, ts, 200, endpoint=True)
-    #ix = xx[4]
-    # y_o = funct(ls, t_old, ix, As, Ds, Gs, Cs)
-    # plot2.plot(t_old, y_o, label="Аналитическое: x=" + str(ix))
+    xx = [0, ls / 5, 3 * ls / 10, 3 * ls / 5, 5 * ls / 10, ls]
     t = np.linspace(0, ts, K + 1)
     for ix in xx:
         i = int((ix * I) / ls)
-        y_old = funct(ls, t_old, ix, As, Ds, Gs, Cs)
-        plot2.plot(x_old, y_old, label="Ax=" + str(ix))
+        # y_old = funct(ls, t_old, ix, As, Ds, Gs, Cs)
+        # plot2.plot(t_old, y_old, label="Ax=" + str(ix))
+        y_old = funct2(Ds, As, ts, ls, I, K, Cs)[i]
+        plot2.plot(t, y_old, label="Ax=" + str(ix))
         yx = soluteYav(Ds, As, ts, ls, I, K, Cs)[i]
         plot2.plot(t, yx, label="x=" + str(ix))
         plot2.legend()
-    # I=5
-    # K=150
-    # t = np.linspace(0, ts, K + 1)
-    # i = int((2 * ix * I) / ls)
-    # yx = soluteYav(Ds, As, ts, ls, I, K, Cs)[i]
-    # plot2.plot(t, yx, label="Явная: I=" + str(I)+", K="+str(K))
+    # ix = xx[4]
+    # t_old = np.linspace(0, ts, 200, endpoint=True)
+    # y_o = funct(ls, t_old, ix, As, Ds, Gs, Cs)
+    # plot2.plot(t_old, y_o, label="Аналитическое: x=" + str(ix))
+    # for I, K in zip(I_values, K_values):
+    #     t = np.linspace(0, ts, K + 1)
+    #     i = int((2 * ix * I) / ls)
+    #     yx = soluteYav(Ds, As, ts, ls, I, K, Cs)[i]
+    #     plot2.plot(t, yx, label="Явная: I=" + str(I)+", K="+str(K))
 
     plot2.legend()
     plot2.set_xlabel('t')

@@ -103,7 +103,8 @@ class Regression:
         :param b: значение параметра b (смещение)
         :returns: F(k, b) = (Σ(yi -(k * xi + b))^2)^0.5
         """
-        return np.sqrt(np.power((y - x * k + b), 2.0).sum())
+        #return np.sqrt(np.power((y - x * k + b), 2.0).sum())
+        return np.linalg.norm((y - x * k + b))
 
     @staticmethod
     def distance_field(x: np.ndarray, y: np.ndarray, k: np.ndarray, b: np.ndarray) -> np.ndarray:
@@ -157,10 +158,11 @@ class Regression:
         :param y: массив значений по y
         :returns: возвращает пару (k, b), которая является решением задачи (Σ(yi -(k * xi + b))^2)->min
         """
-
+        sumx = x.sum()
+        sumy = y.sum()
         n = x.size  # Используем длину массива x, как размерность данных
-        k = ((x * y).sum() - (x.sum() * y.sum()) / n) / (np.power(x, 2).sum() - np.power(x.sum(), 2) / n)
-        b = (y.sum() - k * x.sum()) / n
+        k = ((x * y).sum() - (sumx * sumy) / n) / (np.power(x, 2).sum() - np.power(sumx, 2) / n)
+        b = (sumy - k * sumx) / n
         return k, b
 
     @staticmethod
@@ -295,7 +297,7 @@ class Regression:
         for i in range(x.size):
             for j in range(1, order):
                 X[i][j] = x[i] * X[i][j-1]
-        coefficients = np.linalg.inv(X.T @ X) @ X.T @ y
+        coefficients = np.linalg.inv(X.T @ X) @ X.T @ (y*y)
         return coefficients
 
 
@@ -441,7 +443,7 @@ class Regression:
         coefficients = Regression.poly_regression(x, y)
         y_ = Regression.polynom(x, coefficients)
         plt.figure(figsize=(8, 6))
-        plt.scatter(x, y, label='Данные')  # Точки данных
+        plt.scatter(x, y * y, label='Данные')  # Точки данных
         plt.plot(x, y_, color='red', label='Регрессионная кривая')  # Регрессионная кривая
         plt.xlabel('X')
         plt.ylabel('Y')

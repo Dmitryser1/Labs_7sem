@@ -390,6 +390,7 @@ class LogisticRegression:
 
     def train(self, features: np.ndarray, groups: np.ndarray) -> None:
         """
+        
         :param features: - признаки групп, записанные в виде столбцов                    (x)
         :param groups: - вектор столбец принадлежности групп (0-первая группа, 1-вторая) (y)
         :return:
@@ -400,10 +401,11 @@ class LogisticRegression:
                              f"(N,), but got arrays with different rows count")
         self._group_features_count = features.shape[1]
         self._thetas = np.random.randn(self._group_features_count + 1)
-        x = np.concatenate((np.ones((features.shape[0], 1), dtype=float), features), axis=1)
+        #x = np.concatenate((np.ones((features.shape[0], 1), dtype=float), features), axis=1)
         for i in range(self._max_train_iters):
             thetas_temp = self._thetas.copy()
-            self._thetas -= self._learning_rate * np.dot(x.T, sigmoid(np.dot(x, self._thetas)) - groups)
+            self._thetas -= self.learning_rate * self.gradient_descend(features, groups, self._thetas)
+            #self._thetas -= self._learning_rate * np.dot(x.T, sigmoid(np.dot(x, self._thetas)) - groups)
             # формула thetas(i) = thetas(i - 1) - self._learning_rate * (X^T * sigmoid(X *  thetas(i - 1)) - groups)
             if np.linalg.norm(thetas_temp - self._thetas) <= self._learning_accuracy:
                 break

@@ -17,7 +17,7 @@ ls = 12 #l
 Ds = 0.007 #D
 As = 0.12 #alpha
 cs = 0.8 #c
-ts = 80 #T
+ts = 300 #T
 Gs = 10# gamma
 
 def funct(l, t, x, a, D, g, C): 
